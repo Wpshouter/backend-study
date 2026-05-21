@@ -21,33 +21,32 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-const JWKS = createRemoteJWKSet(new URL(`${process.env.FRONTEND_URL}/api/auth/jwks`))
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.FRONTEND_URL}/api/auth/jwks`),
+);
 const jwtverifytoken = async (req, res, next) => {
-  
-  const authHeader = req?.headers.authorization
+  const authHeader = req?.headers.authorization;
   console.log(authHeader);
-  if(!authHeader){
-    return res.status(401).json({message: 'Unauthorized'});
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
   //console.log(authHeader);
   const tokenasdsad = authHeader.split(" ")[1];
 
-  if(!tokenasdsad){
-    return res.status(401).json({message: 'Unauthorized'});
+  if (!tokenasdsad) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
-  try{
-    const {payload} = await jwtVerify(tokenasdsad,JWKS);
+  try {
+    const { payload } = await jwtVerify(tokenasdsad, JWKS);
     console.log(payload);
     next();
-  }
-  catch (error){
-    return res.status(403).json({message: 'Forbidden'})
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
   }
 
   //http://localhost:4000/api/auth/jwks
   //console.log(tokenasdsad);
-
-}
+};
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -87,71 +86,66 @@ async function run() {
         });
       }
       const result = await roomCollection.updateOne(
-            {
-                _id: new ObjectId(room_id)
-            },
-            {
-                $set: {
-                    room_name: updatedRoom.room_name,
-                    description: updatedRoom.description,
-                    image: updatedRoom.image,
-                    floor: updatedRoom.floor,
-                    capacity: updatedRoom.capacity,
-                    hourly_rate: updatedRoom.hourly_rate,
-                    amenities: updatedRoom.amenities
-                }
-            }
-        );
+        {
+          _id: new ObjectId(room_id),
+        },
+        {
+          $set: {
+            room_name: updatedRoom.room_name,
+            description: updatedRoom.description,
+            image: updatedRoom.image,
+            floor: updatedRoom.floor,
+            capacity: updatedRoom.capacity,
+            hourly_rate: updatedRoom.hourly_rate,
+            amenities: updatedRoom.amenities,
+          },
+        },
+      );
 
       res.json({
-            success: true,
-            message: "Room updated successfully",
-            result
+        success: true,
+        message: "Room updated successfully",
+        result,
       });
-
     });
     app.delete("/rooms/:id", jwtverifytoken, async (req, res) => {
-    const roomId = req.params.id;
-    const { user_id } = req.body;
-    // Find room
-    console.log(user_id);
-    const room = await roomCollection.findOne({
-        _id: new ObjectId(roomId)
-    });
-    if (!room) {
+      const roomId = req.params.id;
+      const { user_id } = req.body;
+      // Find room
+      console.log(user_id);
+      const room = await roomCollection.findOne({
+        _id: new ObjectId(roomId),
+      });
+      if (!room) {
         return res.status(404).json({
-            success: false,
-            message: "Room not Available"
+          success: false,
+          message: "Room not Available",
         });
-
-    }
-    if (room.user_id !== user_id) {
-
+      }
+      if (room.user_id !== user_id) {
         return res.status(403).json({
-            success: false,
-            message: "Unauthorized action"
+          success: false,
+          message: "Unauthorized action",
         });
+      }
 
-    }
+      // Optional:
+      // Remove room related bookings first
+      await bookingCollection.deleteMany({
+        room_id: roomId,
+      });
 
-    // Optional:
-    // Remove room related bookings first
-    await bookingCollection.deleteMany({
-        room_id: roomId
-    });
+      // Delete room
+      const result = await roomCollection.deleteOne({
+        _id: new ObjectId(roomId),
+      });
 
-    // Delete room
-    const result = await roomCollection.deleteOne({
-        _id: new ObjectId(roomId)
-    });
-
-    res.json({
+      res.json({
         success: true,
         message: "Room deleted successfully",
-        result
+        result,
+      });
     });
-
-});
     app.get("/rooms/:user_id", jwtverifytoken, async (req, res) => {
       const user_id = req.params.user_id;
       console.log(user_id);
@@ -164,7 +158,34 @@ async function run() {
     //   console.log(result);
     //   res.json(result);
     // });
+    app.get("/rooms", async (req, res) => {
+      const { search, amenities } = req.query;
 
+      const query = {};
+
+      // Search by room name
+      if (search) {
+        query.room_name = {
+          $regex: search,
+          $options: "i",
+        };
+      }
+
+      // Amenities filter
+      if (amenities) {
+        const amenitiesArray = amenities.split(",");
+
+        query.amenities = {
+          $in: amenitiesArray,
+        };
+      }
+
+      const result = await roomCollection.find(query).toArray();
+
+      console.log(result);
+
+      res.json(result);
+    });
     app.get("/room/:room_id", async (req, res) => {
       const room_id = req.params.room_id;
       const result = await roomCollection.findOne({
@@ -262,6 +283,17 @@ async function run() {
       });
     });
 
+    app.get("/bookings/count/:room_id", async (req, res) => {
+
+    const room_id = req.params.room_id;
+
+        const count = await bookingCollection.countDocuments({
+            room_id: room_id,
+            status: "Confirmed"
+        });
+
+        res.json({ count });
+    });
     // Send a ping to confirm a successful connection
     await client.db(process.env.DATABASE_NAME).command({ ping: 1 });
     console.log(
