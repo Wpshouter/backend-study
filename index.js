@@ -159,11 +159,11 @@ async function run() {
       console.log(result);
       res.json(result);
     });
-    app.get("/rooms", async (req, res) => {
-      const result = await roomCollection.find().toArray();
-      console.log(result);
-      res.json(result);
-    });
+    // app.get("/rooms", async (req, res) => {
+    //   const result = await roomCollection.find().toArray();
+    //   console.log(result);
+    //   res.json(result);
+    // });
 
     app.get("/room/:room_id", async (req, res) => {
       const room_id = req.params.room_id;
