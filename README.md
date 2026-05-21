@@ -50,6 +50,16 @@ Backend server for the StudyNook full-stack study room booking platform. This AP
 | DELETE | `/rooms/:room_id` | Delete room |
 | GET | `/featured-rooms` | Get latest 6 rooms |
 
+
+### 🏢 Bookings
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/bookings` | Create Booking |
+| GET | `/bookings/:user_id` | Get Booking Per User |
+| PATCH | `/bookings/:id/cancel` | Booking Cancel|
+| GET | `/bookings/count/:room_id` | Booking Count Per Room|
+
 ---
 
 ### 🔎 Room Filtering
