@@ -186,6 +186,17 @@ async function run() {
 
       res.json(result);
     });
+    app.get("/featured-rooms", async (req, res) => {
+
+    const result = await roomCollection
+        .find()
+        .sort({ _id: -1 })
+        .limit(6)
+        .toArray();
+
+      res.json(result);
+
+  });
     app.get("/room/:room_id", async (req, res) => {
       const room_id = req.params.room_id;
       const result = await roomCollection.findOne({
