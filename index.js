@@ -50,7 +50,7 @@ const jwtverifytoken = async (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    //await client.connect();
 
     const db = client.db(process.env.DATABASE_NAME);
     const roomCollection = db.collection("rooms");
@@ -295,7 +295,7 @@ async function run() {
         res.json({ count });
     });
     // Send a ping to confirm a successful connection
-    await client.db(process.env.DATABASE_NAME).command({ ping: 1 });
+    //await client.db(process.env.DATABASE_NAME).command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
