@@ -94,7 +94,7 @@ async function run() {
     if (!room) {
         return res.status(404).json({
             success: false,
-            message: "Room not found"
+            message: "Room not Available"
         });
 
     }
