@@ -7,6 +7,7 @@ const port = 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 configDotenv();
 const cors = require("cors");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 const uri = process.env.MONGO_URI;
 // Middleware to parse JSON
 app.use(express.json());
@@ -20,7 +21,31 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+const JWKS = createRemoteJWKSet(new URL(`${process.env.FRONTEND_URL}/api/auth/jwks`))
+const jwtverifytoken = async (req, res, next) => {
+  const authHeader = req?.headers.authorization
+  if(!authHeader){
+    return res.status(401).json({message: 'Unauthorized'});
+  }
+  //console.log(authHeader);
+  const tokenasdsad = authHeader.split(" ")[1];
 
+  if(!tokenasdsad){
+    return res.status(401).json({message: 'Unauthorized'});
+  }
+  try{
+    const {payload} = await jwtVerify(tokenasdsad,JWKS);
+    console.log(payload);
+    next();
+  }
+  catch (error){
+    return res.status(403).json({message: 'Forbidden'})
+  }
+
+  //http://localhost:4000/api/auth/jwks
+  //console.log(tokenasdsad);
+
+}
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -29,14 +54,14 @@ async function run() {
     const db = client.db(process.env.DATABASE_NAME);
     const roomCollection = db.collection("rooms");
     const bookingCollection = db.collection("bookings");
-    app.post("/rooms", async (req, res) => {
+    app.post("/rooms", jwtverifytoken, async (req, res) => {
       const room = req.body;
       console.log(room);
       const result = await roomCollection.insertOne(room);
       console.log(result);
       res.json(result);
     });
-    app.patch("/rooms/:room_id/edit/", async (req, res) => {
+    app.patch("/rooms/:room_id/edit/", jwtverifytoken, async (req, res) => {
       const room_id = req.params.room_id;
       const updatedRoom = req.body;
       // Find existing room
@@ -83,7 +108,7 @@ async function run() {
       });
 
     });
-    app.delete("/rooms/:id", async (req, res) => {
+    app.delete("/rooms/:id", jwtverifytoken, async (req, res) => {
     const roomId = req.params.id;
     const { user_id } = req.body;
     // Find room
@@ -125,7 +150,7 @@ async function run() {
     });
 
 });
-    app.get("/rooms/:user_id", async (req, res) => {
+    app.get("/rooms/:user_id", jwtverifytoken, async (req, res) => {
       const user_id = req.params.user_id;
       console.log(user_id);
       const result = await roomCollection.find({ user_id: user_id }).toArray();
@@ -146,8 +171,8 @@ async function run() {
       //console.log(result);
       res.json(result);
     });
-
-    app.post("/bookings", async (req, res) => {
+    // /Add Room, Book Room, My Bookings, Edit/Delete, Cancel).
+    app.post("/bookings", jwtverifytoken, async (req, res) => {
       const booking = req.body;
       console.log(booking);
       const existingBooking = await bookingCollection.findOne({
@@ -178,7 +203,7 @@ async function run() {
       console.log(result);
       res.json(result);
     });
-    app.get("/bookings/:user_id", async (req, res) => {
+    app.get("/bookings/:user_id", jwtverifytoken, async (req, res) => {
       const user_id = req.params.user_id;
       const result = await bookingCollection
         .find({
@@ -189,7 +214,7 @@ async function run() {
       res.json(result);
     });
 
-    app.patch("/bookings/:id/cancel", async (req, res) => {
+    app.patch("/bookings/:id/cancel", jwtverifytoken, async (req, res) => {
       const bookingId = req.params.id;
       const { user_id } = req.body;
 
